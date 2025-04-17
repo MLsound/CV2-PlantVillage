@@ -185,3 +185,25 @@ def plot_distribution(df, field, plot_type='bar', top_n=None, filter_by=None, ax
     if ax is None:
         plt.tight_layout()
         plt.show()
+
+def plot_density_distribution(df, target):
+    df_graph = df.copy()
+
+    # Calculate value counts and order them
+    ordered_classes = df_graph[target].value_counts().index
+
+    # Map categorical target values to numeric indices
+    df_graph['numeric_target'] = df_graph[target].map({cls: idx for idx, cls in enumerate(ordered_classes)})
+
+    plt.figure(figsize=(15, 10))
+
+    sns.histplot(data=df_graph, x='numeric_target', hue='numeric_target', discrete=True, stat='density', label='Histogram', palette="viridis", legend=False)
+    sns.kdeplot(data=df_graph, x='numeric_target', label='Density Plot', color='orange', linewidth=2)
+    plt.xticks(ticks=range(len(ordered_classes)), labels=ordered_classes, rotation=45, ha='right', va='top')
+    plt.title(f"Histogram and Density plot of '{target}' distribution")
+    plt.xlabel("")
+    plt.ylabel("Density")
+    plt.legend(labels=["Histogram", "Density Plot"])
+
+    plt.tight_layout()
+    plt.show()
