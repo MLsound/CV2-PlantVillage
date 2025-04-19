@@ -1,3 +1,5 @@
 .DS_Store
 TP.code-workspace
 constants.yaml
+dataset
+*.keras
