@@ -10,32 +10,6 @@ from typing import Dict, List, Callable, Optional, Tuple
 from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
 
-def get_keras_model_size(model: keras.Model, unit: str = 'mb') -> float:
-    """
-    Calculates the size of a Keras model in memory.
-
-    Args:
-        model (keras.Model): The Keras model.
-        unit (str): The unit of measurement ('mb', 'kb', or 'bytes').
-
-    Returns:
-        float: The size of the model in the specified unit.
-    """
-    # We will save the model to a temporary file and get its size
-    temp_file = "temp_model.h5"
-    model.save(temp_file)
-    size_bytes = os.path.getsize(temp_file)
-    os.remove(temp_file)  # Clean up the temporary file
-    print(f"Model size: {size_bytes} bytes")
-    if unit.lower() == 'mb':
-        return size_bytes / (1024 * 1024)
-    elif unit.lower() == 'kb':
-        return size_bytes / 1024
-    elif unit.lower() == 'bytes':
-        return size_bytes
-    else:
-        raise ValueError("Invalid unit. Must be 'mb', 'kb', or 'bytes'")
-
 def count_keras_trainable_parameters(model: keras.Model) -> int:
     """
     Counts the number of trainable parameters in a Keras model.
@@ -48,110 +22,86 @@ def count_keras_trainable_parameters(model: keras.Model) -> int:
     """
     return model.count_params()
 
-def calculate_keras_metrics(
-    model: keras.Model,
+from typing import Dict, Callable, Optional, List
+import tensorflow as tf
+from tensorflow import keras
+import numpy as np
+
+def evaluate_multiple_models(
+    models: Dict[str, keras.Model],
     dataloader: tf.data.Dataset,
-    metrics: Dict[str, Callable],  # Change back to Dict[str, Callable]
+    compiled_metrics_names: List[str],
+    metrics: Dict[str, Callable],
     target_transform: Optional[Callable] = None,
     output_transform: Optional[Callable] = None
-) -> Dict[str, float]:
+) -> Dict[str, Dict[str, float]]:
     """
-    Calculates specified metrics for a given Keras model on a dataloader.
+    Evaluates a series of Keras models on a given dataloader using specified metrics.
 
     Args:
-        model (keras.Model): The Keras model.
-        dataloader (tf.data.Dataset): The TensorFlow data loader.
+        models (Dict[str, keras.Model]): A dictionary where keys are model names
+            and values are the Keras models.
+        dataloader (tf.data.Dataset): The TensorFlow data loader to use for evaluation.
         metrics (Dict[str, Callable]): A dictionary of metric names and
             corresponding callable functions (e.g., {'accuracy': accuracy_score}).
-            These should be metrics that the Keras model was compiled with.
         target_transform (Optional[Callable]): A function to transform the target
             variable (y_true).
         output_transform (Optional[Callable]): A function to transform the model
             output before converting it to predictions.
 
     Returns:
-        Dict[str, float]: A dictionary of metric names and their calculated values.
+        Dict[str, Dict[str, float]]: A dictionary where keys are model names and
+            values are dictionaries of metric names and their calculated values
+            for that model.
     """
-    results = {}
-    eval_results = model.evaluate(dataloader, verbose=0)
-
-    # Get the names of the metrics the model was compiled with.
-    model_metrics_names = model.metrics_names
-
-    for metric_name, metric_func in metrics.items():
-        if metric_name in model_metrics_names:
-            # If the metric is already calculated by the model, use that value.
-            metric_index = model_metrics_names.index(metric_name)
-            results[metric_name] = eval_results[metric_index]
-        else:
-            # Otherwise, calculate the metric using the provided function.
-            all_targets = []
-            all_predictions = []
-            for batch in dataloader:
-                inputs, targets = batch
-                predictions = model.predict(inputs, verbose=0)
-                if output_transform:
-                    predictions = output_transform(predictions)
-                all_targets.extend(targets.numpy())
-                all_predictions.extend(predictions)
-            try:
-                targets_np = np.array(all_targets)
-                predictions_np = np.array(all_predictions)
-                if target_transform:
-                    targets_np = target_transform(targets_np)
-                results[metric_name] = metric_func(targets_np, predictions_np)
-            except Exception as e:
-                print(f"Error calculating metric {metric_name}: {e}")
-                results[metric_name] = float('nan')
-    return results
-def compare_keras_models(
-    models: Dict[str, keras.Model],
-    dataloaders: Dict[str, tf.data.Dataset],
-    metrics: Dict[str, Callable],  # Change back to Dict[str, Callable]
-    target_transform: Optional[Callable] = None,
-    output_transform: Optional[Callable] = None
-) -> pd.DataFrame:
-    """
-    Compares the performance of multiple Keras models.
-
-    Args:
-        models (Dict[str, keras.Model]): A dictionary of model names and
-            corresponding Keras models.
-        dataloaders (Dict[str, tf.data.Dataset]): A dictionary of
-            dataloader names ('train', 'val', 'test') and their corresponding
-            TensorFlow data loaders.
-        metrics (Dict[str, Callable]): A dictionary of metric names and
-            corresponding callable functions (e.g., {'accuracy': accuracy_score}).
-        target_transform (Optional[Callable]): A function to transform the target.
-        output_transform (Optional[Callable]): A function to transform the output.
-
-    Returns:
-        pd.DataFrame: A DataFrame containing the comparison results.
-    """
-    results = []
+    all_results = {}
     for model_name, model in models.items():
-        model_results = {
-            'model_name': model_name,
-            'size_mb': 0,
-            'trainable_params': count_keras_trainable_parameters(model),
-        }
+        print(f"\nEvaluating model: {model_name}")
+        model_results = {}
+        eval_results = model.evaluate(dataloader, verbose=0)
+        model_metrics_names = model.metrics_names
+        print("Model metrics names:", model_metrics_names)
+        if len(compiled_metrics_names) != len(eval_results):
+            print(f"Warning: Number of compiled metric names ({len(compiled_metrics_names)}) "
+                  f"does not match the number of evaluation results ({len(eval_results)}). "
+                  "Results might be misaligned.")
 
-        # Time the evaluation
-        start_time = time.time()
-        for dataloader_name, dataloader in dataloaders.items():
-            model_metrics = calculate_keras_metrics(model, dataloader, metrics,
-                                                  target_transform, output_transform)
-            for metric_name, metric_value in model_metrics.items():
-                model_results[f'{dataloader_name}_{metric_name}'] = metric_value
-        end_time = time.time()
-        model_results['evaluation_time'] = end_time - start_time
-        results.append(model_results)
+        for i, metric_name in enumerate(compiled_metrics_names):
+            if i < len(eval_results):
+                model_results[metric_name] = eval_results[i + 1]
+            else:
+                model_results[metric_name] = float('nan')
+                print(f"Warning: Metric '{metric_name}' not found in evaluation results.")
 
-    return pd.DataFrame(results)
+        for metric_name, metric_func in metrics.items():
+            print(f"compiled metrics: '{compiled_metrics_names}'...")
+            if metric_name not in compiled_metrics_names:
+                print(f"Calculating metric '{metric_name}'...")
+                all_targets = []
+                all_predictions = []
+                for batch in dataloader:
+                    inputs, targets = batch
+                    predictions = model.predict(inputs, verbose=0)
+                    if output_transform:
+                        predictions = output_transform(predictions)
+                    all_targets.extend(targets.numpy())
+                    all_predictions.extend(predictions)
+                try:
+                    targets_np = np.array(all_targets)
+                    predictions_np = np.array(all_predictions)
+                    if target_transform:
+                        targets_np = target_transform(targets_np)
+                    model_results[metric_name] = metric_func(targets_np, predictions_np)
+                except Exception as e:
+                    print(f"Error calculating metric '{metric_name}': {e}")
+                    model_results[metric_name] = float('nan')
+        all_results[model_name] = model_results
+    return all_results
+
 
 def plot_model_comparison(df: pd.DataFrame,
-                           metrics_to_plot: List[str],
-                           dataloader_names: List[str]) -> None:
+                           metrics_to_plot: List[str]
+                           ) -> None:
     """
     Plots the comparison of models based on the provided DataFrame.
 
@@ -229,38 +179,3 @@ def plot_training_times(df: pd.DataFrame) -> None:
     plt.tight_layout()
     plt.show()
 
-def compare_and_plot_models(
-    models: Dict[str, keras.Model],
-    model_stats: Dict[str, dict],
-    dataloaders: Dict[str, tf.data.Dataset],
-    metrics: Dict[str, Callable],  # Change back to Dict[str, Callable]
-    target_transform: Optional[Callable] = None,
-    output_transform: Optional[Callable] = None,
-    dataloader_names: List[str] =  ['train', 'val', 'test']
-) -> None:
-    """
-    Combines model comparison and plotting into a single function.
-
-    Args:
-        models (Dict[str, keras.Model]): A dictionary of model names and
-            corresponding Keras models.
-        model_stats (Dict[str, dict]): A dictionary of model name and model stats
-        dataloaders (Dict[str, tf.data.Dataset]): A dictionary of
-            dataloader names and their corresponding TensorFlow data loaders.
-        metrics (Dict[str, Callable]): A dictionary of metric names and
-            corresponding callable functions.
-        target_transform (Optional[Callable]): Target transform function.
-        output_transform (Optional[Callable]): Output transform function.
-        dataloader_names (List[str]): dataloader names
-    """
-    comparison_df = compare_keras_models(models, dataloaders, metrics, target_transform, output_transform)
-    print("Model Comparison:")
-    print(comparison_df)
-
-    metrics_to_plot = ['size_mb', 'trainable_params'] + [f'{dl_name}_{metric_name}' for dl_name in dataloader_names for metric_name in metrics.keys()]
-    plot_model_comparison(comparison_df, metrics_to_plot, dataloader_names)
-
-    training_times_df = compare_training_times(model_stats)
-    print("\nTraining Time Comparison:")
-    print(training_times_df)
-    plot_training_times(training_times_df)
