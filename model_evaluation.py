@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from typing import Dict, List, Callable, Optional, Tuple
 from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
+import seaborn as sns
 
 def count_keras_trainable_parameters(model: keras.Model) -> int:
     """
@@ -99,9 +100,28 @@ def evaluate_multiple_models(
     return all_results
 
 
-def plot_model_comparison(df: pd.DataFrame,
-                           metrics_to_plot: List[str]
-                           ) -> None:
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+
+def plot_model_comparison(df: pd.DataFrame, metrics_to_plot: List[str]) -> None:
     """
     Plots the comparison of models based on the provided DataFrame.
 
@@ -110,31 +130,36 @@ def plot_model_comparison(df: pd.DataFrame,
             (output of compare_models).
         metrics_to_plot (List[str]): A list of metrics to plot
             (e.g., ['size_mb', 'trainable_params', 'val_accuracy']).
-        dataloader_names (List[str]): A list of dataloader names to include
-            in the plot labels (e.g., ['train', 'val', 'test']).
     """
     num_models = len(df)
     num_metrics = len(metrics_to_plot)
     fig, axes = plt.subplots(num_metrics, 1, figsize=(10, 5 * num_metrics))
+
     if num_metrics == 1:
         axes = [axes]  # Ensure axes is iterable even if only one subplot
 
-    x = np.arange(num_models)
-    width = 0.8  # the width of the bars
-    model_names = df['model_name']
+    model_names = df.index
+
+    # Use Seaborn color palette for the bars
+    palette = sns.color_palette("Set2", n_colors=num_models)
 
     for i, metric in enumerate(metrics_to_plot):
         ax = axes[i]
         values = df[metric]
-        ax.bar(x, values, width)
-        ax.set_xticks(x)
+
+        # Create the bar plot using Seaborn
+        sns.barplot(x=model_names, y=values, ax=ax, palette=palette);
+
         ax.set_xticklabels(model_names, rotation=45, ha="right")
         ax.set_ylabel(metric)
-        ax.set_title(metric)
-        ax.set_ylim(0, max(values) * 1.1) #Adjust y-axis
+        ax.set_title(f'{metric}  Comparison')
+        ax.set_ylim(0, max(values) * 1.1)  # Adjust y-axis
 
+    # Adjust the layout and show the plot
     plt.tight_layout()
     plt.show()
+    return
+
 
 def compare_training_times(models: Dict[str, dict]) -> pd.DataFrame:
     """
@@ -178,4 +203,131 @@ def plot_training_times(df: pd.DataFrame) -> None:
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     plt.show()
+from tensorflow.keras.utils import register_keras_serializable
 
+@register_keras_serializable()
+def macro_f1_score(y_true, y_pred):
+    y_true_labels = tf.argmax(y_true, axis=-1, output_type=tf.int64)
+    y_pred_labels = tf.argmax(y_pred, axis=-1, output_type=tf.int64)
+
+    num_classes = tf.shape(y_true)[-1]
+
+    def compute_f1(i):
+        i = tf.cast(i, tf.int64)  # 👈 match dtype with y_true_labels
+        y_true_i = tf.cast(tf.equal(y_true_labels, i), tf.float32)
+        y_pred_i = tf.cast(tf.equal(y_pred_labels, i), tf.float32)
+
+        tp = tf.reduce_sum(y_true_i * y_pred_i)
+        fp = tf.reduce_sum((1 - y_true_i) * y_pred_i)
+        fn = tf.reduce_sum(y_true_i * (1 - y_pred_i))
+
+        precision = tp / (tp + fp + 1e-8)
+        recall = tp / (tp + fn + 1e-8)
+        f1 = 2 * precision * recall / (precision + recall + 1e-8)
+        return f1
+
+    f1s = tf.map_fn(compute_f1, tf.range(num_classes), dtype=tf.float32)
+    return tf.reduce_mean(f1s)
+
+
+
+def recalculate_metrics(model_name, model, dataloader, metrics, output_transform=None, target_transform=None):
+    import numpy as np
+
+    model_results = {}
+    all_targets, all_predictions = [], []
+
+    # Run predictions over the dataloader
+    for batch in dataloader:
+        inputs, targets = batch
+        predictions = model.predict(inputs, verbose=0)
+        if output_transform:
+            predictions = output_transform(predictions)
+        all_targets.extend(targets.numpy())
+        all_predictions.extend(predictions)
+
+    targets_np = np.array(all_targets)
+    predictions_np = np.array(all_predictions)
+
+    if target_transform:
+        targets_np = target_transform(targets_np)
+
+    # Calculate each provided metric
+    for metric_name, metric_func in metrics.items():
+        try:
+            value = metric_func(targets_np, predictions_np)
+            model_results[metric_name] = np.mean(value) if isinstance(value, (list, np.ndarray)) else value
+        except Exception as e:
+            print(f"Error calculating metric '{metric_name}': {e}")
+            model_results[metric_name] = float('nan')
+
+    return {model_name: model_results}
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+def plot_metric_histories(histories: dict, metrics: list = ['accuracy', 'f1_score']):
+    """
+    Plots training and validation loss separately from other specified metrics for each model.
+    Supports multi-dimensional metrics (e.g., per-class f1_score) by taking the mean.
+    """
+    for model_name, history in histories.items():
+        if history is None:
+            print(f"❌ No history found for {model_name}")
+            continue
+
+        print(f"\n📊 Plotting metrics for {model_name}...")
+
+        # --- 1. Plot LOSS ---
+        if 'loss' in history:
+            plt.figure(figsize=(8, 5))
+            plt.title(f'Loss History for {model_name}')
+            loss = [np.mean(v) if hasattr(v, '__iter__') else v for v in history['loss']]
+            plt.plot(loss, label='Training Loss', linewidth=2)
+
+            if 'val_loss' in history:
+                val_loss = [np.mean(v) if hasattr(v, '__iter__') else v for v in history['val_loss']]
+                plt.plot(val_loss, label='Validation Loss', linewidth=2, linestyle='--')
+
+            plt.xlabel('Epochs')
+            plt.ylabel('Loss')
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            plt.show()
+        else:
+            print(f"⚠️ No 'loss' found in history for {model_name}")
+
+        # --- 2. Plot other metrics (excluding loss) ---
+        other_metrics = [m for m in metrics if m not in ['loss']] # Exclude 'loss'
+        for metric in other_metrics:
+            has_data = False
+            plt.figure(figsize=(8, 5))
+            plt.title(f'{metric.capitalize()} History for {model_name}')
+
+            # Training metric
+            if metric in history:
+                values = history[metric]
+                reduced = [np.mean(v) if hasattr(v, '__iter__') else v for v in values]
+                plt.plot(reduced, label=f'Training {metric}', linewidth=2)
+                has_data = True
+
+            # Validation metric
+            val_metric = f'val_{metric}'
+            if val_metric in history:
+                val_values = history[val_metric]
+                reduced_val = [np.mean(v) if hasattr(v, '__iter__') else v for v in val_values]
+                plt.plot(reduced_val, label=f'Validation {metric}', linewidth=2, linestyle='--')
+                has_data = True
+
+            if has_data:
+                plt.xlabel('Epochs')
+                plt.ylabel(metric.capitalize())
+                plt.legend()
+                plt.grid(True)
+                plt.tight_layout()
+                plt.show()
+            else:
+                plt.close()
+                print(f"⚠️ No data for metric '{metric}' in {model_name}")
