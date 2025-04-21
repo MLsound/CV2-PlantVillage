@@ -1,0 +1,8 @@
+,f1_score,accuracy,load_index,model_name
+CNN_4_blocks,0.9562070297280733,0.9675904612834914,0.0,CNN_4_blocks
+model_vgg_10,0.98200221242119,0.9863732621305588,1.0,model_vgg_10
+model_vgg_6,0.9645180022152564,0.9764294263879938,2.0,model_vgg_6
+model_vgg_2_augmented_undersampling,0.6648208945920974,0.6616333670932695,3.0,model_vgg_2_augmented_undersampling
+model_vgg_2,0.944422802276918,0.959580149157536,4.0,model_vgg_2
+model_vgg_4,0.953030280652454,0.9643679219224748,5.0,model_vgg_4
+CNN_4_blocks_augmented_undersampling,0.9547450349954973,0.9605008746892552,,CNN_4_blocks_augmented_undersampling
