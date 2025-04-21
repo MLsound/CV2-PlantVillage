@@ -3,3 +3,4 @@ TP.code-workspace
 constants.yaml
 dataset
 *.keras
+/__pycache__
