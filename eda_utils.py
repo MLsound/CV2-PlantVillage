@@ -169,12 +169,12 @@ def plot_distribution(df, field, plot_type='bar', top_n=None, filter_by=None, ax
 
     if plot_type == 'bar':
         sns.barplot(x=value_counts.index, y=value_counts.values, ax=ax, palette=kwargs.get('palette', "viridis"))
-        ax.set_title(f'Distribution of {field}{title_suffix}', fontsize=14)
-        ax.set_xlabel(field, fontsize=10)
-        ax.set_ylabel('Count', fontsize=10)
-        ax.tick_params(axis='x', rotation=45, labelsize=8)
+        ax.set_title(f'Distribution per {field}{title_suffix}', fontsize=14)
+        ax.set_xlabel(field, fontsize=14)
+        ax.set_ylabel('Count', fontsize=14)
+        ax.tick_params(axis='x', rotation=45, labelsize=12)
         ax.set_xticklabels(ax.get_xticklabels(), ha='right') # Set horizontal alignment here
-        ax.tick_params(axis='y', labelsize=8)
+        ax.tick_params(axis='y', labelsize=12)
     elif plot_type == 'pie':
         ax.pie(value_counts, labels=value_counts.index, startangle=140, **kwargs)
         ax.set_title(f'Distribution of {field}{title_suffix}', fontsize=14)

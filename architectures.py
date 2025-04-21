@@ -1,20 +1,22 @@
 import tensorflow as tf
 from tensorflow.keras import layers
+from tensorflow.keras.utils import register_keras_serializable
 from tensorflow.keras.applications import VGG19
 from tensorflow.keras.applications.vgg19 import preprocess_input
 
+@register_keras_serializable()
 class VGG_TF(tf.keras.Model):
-    def __init__(self,num_classes,fine_tune_at=None):
-        super(VGG_TF, self).__init__()
-
+    def __init__(self,num_classes,fine_tune_at=None,**kwargs):
+        super(VGG_TF, self).__init__(**kwargs)
         # Get the pretrained VGG19 network (excluding the top classification layers)
+        self.num_classes = num_classes
         self.vgg = VGG19(weights='imagenet', include_top=False)
 
         # Make the convolutional layers non-trainable by default (optional, for feature extraction)
         self.vgg.trainable = False
 
         # # Define the layers you want to access for CAM (similar to your PyTorch structure)
-        # self.features_conv = self.vgg.get_layer('block5_conv4') # Example: Access the output of the last conv layer
+        self.features_conv = self.vgg.get_layer('block5_conv4') # Example: Access the output of the last conv layer
 
         # Define a max pooling layer (similar to your PyTorch structure)
         self.max_pool = layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding='same')
@@ -71,3 +73,20 @@ class VGG_TF(tf.keras.Model):
         # Apply the VGG19 specific preprocessing
         processed_image = preprocess_input(resized_image)
         return processed_image, label
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'num_classes': self.num_classes,  # Ensure this is 'num_classes'
+            'fine_tune_at': self.fine_tune_at
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(num_classes=config['num_classes'],
+                   fine_tune_at=config.get('fine_tune_at'),
+                   name=config.get('name'),  # Handle the 'name' argument
+                   dtype=config.get('dtype'),  # Handle the 'dtype' argument
+                   trainable=config.get('trainable'),  # Handle the 'trainable' argument
+                   **{})  # Pass any *other* config without duplicating known args# Pass any other config items as kwargs
