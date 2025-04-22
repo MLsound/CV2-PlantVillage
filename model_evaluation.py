@@ -152,8 +152,8 @@ def plot_model_comparison(df: pd.DataFrame, metrics_to_plot: List[str]) -> None:
 
         ax.set_xticklabels(model_names, rotation=45, ha="right")
         ax.set_ylabel(metric)
-        ax.set_title(f'{metric}  Comparison')
-        ax.set_ylim(0, max(values) * 1.1)  # Adjust y-axis
+        ax.set_title(f'{metric} ')
+        ax.set_ylim(min(values)*0.9, max(values) * 1.1)  # Adjust y-axis
 
     # Adjust the layout and show the plot
     plt.tight_layout()
@@ -262,6 +262,52 @@ def recalculate_metrics(model_name, model, dataloader, metrics, output_transform
             model_results[metric_name] = float('nan')
 
     return {model_name: model_results}
+def recalculate_metrics2(model_name, model, dataloader, metrics, output_transform=None, target_transform=None):
+    import numpy as np
+    from sklearn.utils.class_weight import compute_class_weight
+    from collections import Counter
+
+    model_results = {}
+    all_targets, all_predictions = [], []
+
+    # Run predictions over the dataloader
+    for batch in dataloader:
+        inputs, targets = batch
+        predictions = model.predict(inputs, verbose=0)
+        if output_transform:
+            predictions = output_transform(predictions)
+        all_targets.extend(targets.numpy())
+        all_predictions.extend(predictions)
+
+    targets_np = np.array(all_targets)
+    predictions_np = np.array(all_predictions)
+
+    if target_transform:
+        targets_np = target_transform(targets_np)
+
+    # Get class support counts
+    target_labels = targets_np.flatten()
+    class_counts = Counter(target_labels)
+    classes = sorted(class_counts.keys())
+    supports = np.array([class_counts[c] for c in classes])
+    total_support = np.sum(supports)
+
+    # Calculate each provided metric
+    for metric_name, metric_func in metrics.items():
+        try:
+            value = metric_func(targets_np, predictions_np)
+            if isinstance(value, (list, np.ndarray)) and len(value) == len(supports):
+                # Weighted average
+                weighted_value = np.sum(np.array(value) * supports) / total_support
+                model_results[metric_name] = weighted_value
+            else:
+                # Scalar metric (like accuracy)
+                model_results[metric_name] = value
+        except Exception as e:
+            print(f"Error calculating metric '{metric_name}': {e}")
+            model_results[metric_name] = float('nan')
+
+    return {model_name: model_results}
 
 
 import matplotlib.pyplot as plt
@@ -331,3 +377,49 @@ def plot_metric_histories(histories: dict, metrics: list = ['accuracy', 'f1_scor
             else:
                 plt.close()
                 print(f"⚠️ No data for metric '{metric}' in {model_name}")
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+def plot_confusion_matrix_from_df(df: pd.DataFrame, model_name: str, class_names=None, normalize=False):
+    """
+    Plots a confusion matrix for a specific model from the DataFrame.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the confusion matrix.
+        model_name (str): The model name (index of the DataFrame).
+        class_names (List[str], optional): Class labels for axes.
+        normalize (bool): Whether to normalize the matrix row-wise.
+    """
+    try:
+        cm = df.loc[model_name, 'confusion_matrix']
+    except KeyError:
+        print(f"Model '{model_name}' not found in DataFrame.")
+        return
+
+    if normalize:
+        cm = cm.astype(np.float32)
+        cm /= cm.sum(axis=1, keepdims=True)
+
+    num_classes = cm.shape[0]
+    figsize = max(12, int(num_classes * 0.5))  # scale size with number of classes
+
+    plt.figure(figsize=(figsize, figsize))
+    sns.heatmap(
+        cm,
+        annot=False,  # Set to True if you want to see individual cell values
+        fmt=".2f" if normalize else "d",
+        cmap="cividis",
+        xticklabels=class_names if class_names else np.arange(num_classes),
+        yticklabels=class_names if class_names else np.arange(num_classes),
+        cbar_kws={'shrink': 0.5},
+        square=True
+    )
+
+    plt.xticks(rotation=90, fontsize=8)
+    plt.yticks(rotation=0, fontsize=8)
+    plt.title(f"Confusion Matrix for {model_name}", fontsize=16)
+    plt.xlabel("Predicted", fontsize=12)
+    plt.ylabel("True", fontsize=12)
+    plt.tight_layout()
+    plt.show()
