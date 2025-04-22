@@ -96,6 +96,8 @@ def import_dataset(filename: str = 'dataframe_splitted.csv') -> pd.DataFrame | N
         print(f"Ocurrió un error al leer el archivo CSV: {e}")
         return None
 
+# Para cargar rutas de acceso a datos
+# ROOT_DIR, DATASETS_ROOT, DATASET_PATH, SPLITTED_PATH, AUG_PATH = data_utils.import_from_yaml()
 def import_from_yaml():
     """
     Importa las constantes de configuración desde un archivo YAML llamado 'constants.yaml'.
@@ -138,6 +140,8 @@ def import_from_yaml():
         print(f"Ocurrió un error al leer el archivo YAML: {e}")
 
 
+# Para guardar rutas de acceso a datos
+# data_utils.save_into_yaml(ROOT_DIR, DATASETS_ROOT, DATASET_PATH, SPLITTED_PATH, AUG_PATH)
 def save_into_yaml(ROOT_DIR: str | None = None,
                    DATASETS_ROOT: str | None = None,
                    DATASET_PATH: str | None = None,

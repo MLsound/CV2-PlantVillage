@@ -1,15 +1,20 @@
 # eval_utils.py
-import time
+# Librerías estándar de Python
 import os
-import psutil
+import time
+from typing import Callable, Dict, List, Optional, Tuple
+
+# Librerías de terceros
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+# Métricas de ML
 import tensorflow as tf
 from tensorflow import keras
-import pandas as pd
-import matplotlib.pyplot as plt
-from typing import Dict, List, Callable, Optional, Tuple
 from sklearn.metrics import accuracy_score, f1_score
-import numpy as np
-import seaborn as sns
+from keras.utils import register_keras_serializable
 
 def count_keras_trainable_parameters(model: keras.Model) -> int:
     """
@@ -23,10 +28,6 @@ def count_keras_trainable_parameters(model: keras.Model) -> int:
     """
     return model.count_params()
 
-from typing import Dict, Callable, Optional, List
-import tensorflow as tf
-from tensorflow import keras
-import numpy as np
 
 def evaluate_multiple_models(
     models: Dict[str, keras.Model],
@@ -98,27 +99,6 @@ def evaluate_multiple_models(
                     model_results[metric_name] = float('nan')
         all_results[model_name] = model_results
     return all_results
-
-
-import seaborn as sns
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-
-import seaborn as sns
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-
-import seaborn as sns
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-
-import seaborn as sns
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
 
 
 def plot_model_comparison(df: pd.DataFrame, metrics_to_plot: List[str]) -> None:
@@ -203,7 +183,6 @@ def plot_training_times(df: pd.DataFrame) -> None:
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     plt.show()
-from tensorflow.keras.utils import register_keras_serializable
 
 @register_keras_serializable()
 def macro_f1_score(y_true, y_pred):
@@ -232,7 +211,6 @@ def macro_f1_score(y_true, y_pred):
 
 
 def recalculate_metrics(model_name, model, dataloader, metrics, output_transform=None, target_transform=None):
-    import numpy as np
 
     model_results = {}
     all_targets, all_predictions = [], []
@@ -310,8 +288,6 @@ def recalculate_metrics2(model_name, model, dataloader, metrics, output_transfor
     return {model_name: model_results}
 
 
-import matplotlib.pyplot as plt
-import numpy as np
 
 def plot_metric_histories(histories: dict, metrics: list = ['accuracy', 'f1_score']):
     """
