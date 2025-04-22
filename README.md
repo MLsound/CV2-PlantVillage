@@ -19,7 +19,8 @@ La estructura del repositorio se organiza de la siguiente manera:
 .
 ├── Documentacion/               # Documentos relacionados con los avances del proyecto
 ├── Experimentos/                # Resultados y artefactos de los diferentes experimentos
-│   ├── experimento_01/          # Detalles del Experimento 01
+│   ├── experimento_cnn/         # Detalles del Experimento 01 _(CNN Model)_
+│   ├── experimento_vgg/         # Detalles del Experimento 02 _(VGG Model)_
 │   ├── experimento_a1/          # Detalles del Experimento A1 _(estrategia 1)_
 │   └── experimento_a2/          # Detalles del Experimento A2 _(estrategia 2)_
 ├── Versiones Colab/             # Notebooks utilizados y/o probados en Google Colab
@@ -27,23 +28,29 @@ La estructura del repositorio se organiza de la siguiente manera:
 │   ├── DataAugmentation2.ipynb
 │   └── TrainExperiments.ipynb
 ├── .gitignore                   # Archivo para ignorar archivos y carpetas en Git
-├── 1 Exploracion.ipynb          # Notebook para la exploración inicial de los datos (EDA)
-├── 2 Data Augmentation.ipynb    # Notebook con la implementación de estrategias de aumentación de datos
-├── 3 Modelo CNN.ipynb           # Notebook con la implementación y entrenamiento de un modelo CNN base
+├── 1 Exploracion y Split.ipynb  # Notebook para la exploración inicial de los datos (EDA) y división en conjuntos de train/validation/test.
+├── 2 Data Augmentation.ipynb    # Notebook con la implementación de estrategias de aumentación de datos.
+├── 3 Modelo CNN.ipynb           # Notebook con la implementación y entrenamiento de un modelo CNN base.
+├── 4 Modelo VGG.ipynb           # Notebook con la implementación y entrenamiento de modelos VGG.
+├── 5 Model Evaluation.ipynb     # Notebook para la evaluación final de los modelos entrenados.
 ├── architectures.py             # Script con definiciones de arquitecturas de modelos
-├── constants.py                 # Script con definiciones de constantes utilizadas en el proyecto
-├── data_utils.py                # Script con funciones utilitarias para el manejo de datos
+├── constants.yaml               # Archivo de configuración con constantes utilizadas en scripts y notebooks.
+├── CNN_4_blocks_history.pkl     # Historial de entrenamiento del modelo CNN con 4 bloques.
+├── data_utils.py                # Script con funciones utilitarias para la carga, preprocesamiento y manejo de datos.
 ├── dataframe_augmented.csv      # Archivo CSV con información sobre datos aumentados _(estrategia 1)_
 ├── dataframe_augmented2.csv     # Archivo CSV con información sobre datos aumentados _(estrategia 2)_
 ├── dataframe_splitted.csv       # Archivo CSV con información sobre los datos divididos (train/val/test)
 ├── dataframe.csv                # Archivo CSV con información inicial del dataset
+├── dataloading.py               # Script con funciones para la carga eficiente de datos, potencialmente usando DataLoader
 ├── eda_utils.py                 # Script con funciones utilitarias para el análisis exploratorio de datos (EDA)
 ├── environment.yml              # Archivo para definir el entorno de Conda
-├── model_evaluation.ipynb       # Notebook para la evaluación de modelos
-├── model_evaluation.py          # Script con funciones para la evaluación de modelos
+├── model_evaluation.py          # Script con funciones para realizar la evaluación de modelos (métricas, reportes).s.
+├── model_vgg_2_history.pkl      # Historial de entrenamiento del modelo VGG (variante 2).
+├── model_vgg_4_history.pkl      # Historial de entrenamiento del modelo VGG (variante 4).
+├── model_vgg_6_history.pkl      # Historial de entrenamiento del modelo VGG (variante 6).
+├── model_vgg_10_history.pkl     # Historial de entrenamiento del modelo VGG (variante 10).
 ├── README.md                    # Este archivo
-└── representative_histogram.csv # Archivo CSV relacionado con histogramas representativos
-
+└── representative_histogram.csv # Archivo CSV relacionado con análisis de histogramas de imágenes.
 
 ### Dataset
 
